@@ -33,7 +33,6 @@ template = '''
 prompt = ChatPromptTemplate.from_template(template)
 
 # llm chain
-# todo 理解一下为啥
 rag_chain = (
     {"context": retriever,  "question": RunnablePassthrough()}
     | prompt 
@@ -47,6 +46,7 @@ print("==================chatglm3 only===================")
 print(LLM(query))
 print("==================retrieval + chatglm3===================")
 print(rag_chain.invoke(query))
+
 
 
 
