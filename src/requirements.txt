@@ -1,0 +1,8 @@
+datasets
+langchain
+sentence_transformers 
+tqdm 
+chromadb 
+langchain_wenxin
+langchain 
+openai 
