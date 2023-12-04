@@ -14,7 +14,7 @@ def txt_data(txt_name):
 def txt_split(documents):
     # 创建拆分器
     # text_splitter = CharacterTextSplitter(chunk_size=128, chunk_overlap=0) #只分割成一段
-    text_splitter = CharacterTextSplitter(separator='。', chunk_size=128, chunk_overlap=0)
+    text_splitter = CharacterTextSplitter(separator='。', chunk_size=512, chunk_overlap=0)
     # 拆分文档
     documents = text_splitter.split_documents(documents)
     return documents

@@ -30,12 +30,12 @@ def load_chroma(persist_directory):
     return vectordb
 
 
-# doc = txt_data("藜.txt")
-# documents = txt_split(doc) 
+doc = txt_data("市场监督实务培训-test.txt")
+documents = txt_split(doc) 
 db_path = "../database" # 数据库保存路径
 model_name = "/data/datasets/user1801004151/model_weights/m3e-base" # m3a-base model
 # embedding = get_embedding(model_name)
-# db = vectorize_documents(model_name, documents, db_path) # 首次向量化数据
+db = vectorize_documents(model_name, documents, db_path) # 首次向量化数据
 db = load_chroma(persist_directory=db_path) # 加载已有向量数据库
 # res = db.similarity_search("藜怎么防治虫害？")
 # data = db.get() 

@@ -7,7 +7,13 @@ from langchain.schema.output_parser import StrOutputParser
 
 # load db
 db_path = "../database" # 数据库保存路径
-db = load_chroma(persist_directory=db_path)
+# new db
+doc = txt_data("市场监督实务培训-test.txt")
+documents = txt_split(doc) 
+embedding_model = "/data/datasets/user1801004151/model_weights/m3e-base" # m3a-base model
+db = vectorize_documents(embedding_model, documents, db_path)
+# db existed
+# db = load_chroma(persist_directory=db_path)
 retriever = db.as_retriever()
 
 # load llm
@@ -41,7 +47,7 @@ rag_chain = (
 )
 
 # Q&A
-query = '藜怎么防治虫害？'
+query = "地方性法规可以设定（　）的行政处罚。A. 没收违法所得　　B. 吊销许可证　　C. 责令停产停业　　D. 较大金额罚款"
 print("==================chatglm3 only===================")
 print(LLM(query))
 print("==================retrieval + chatglm3===================")
