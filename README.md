@@ -13,7 +13,7 @@ LLM model: [chatglm3-6b download](https://huggingface.co/THUDM/chatglm3-6b)
 ```
 conda create -n RAG python=3.10
 source activate RAG
-pip install -r requirements
+pip install -r src/requirements.txt
 ```
 ## Todo
 - More data formats(xlsx,json,pdf...)
