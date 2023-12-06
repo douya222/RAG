@@ -4,11 +4,13 @@ from embedding import vectorize_documents, load_chroma
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
+import json
+from tqdm import tqdm
 
 # load db
 db_path = "../database" # 数据库保存路径
 # new db
-doc = txt_data("市场监督实务培训-test.txt")
+doc = txt_data("藜.txt")
 documents = txt_split(doc) 
 embedding_model = "/data/datasets/user1801004151/model_weights/m3e-base" # m3a-base model
 db = vectorize_documents(embedding_model, documents, db_path)
@@ -47,11 +49,28 @@ rag_chain = (
 )
 
 # Q&A
-query = "地方性法规可以设定（　）的行政处罚。A. 没收违法所得　　B. 吊销许可证　　C. 责令停产停业　　D. 较大金额罚款"
-print("==================chatglm3 only===================")
-print(LLM(query))
-print("==================retrieval + chatglm3===================")
-print(rag_chain.invoke(query))
+qa_path = './qa_data/qa.json'
+output_path = './qa_data/qa_p.json'
+
+with open(qa_path, 'r', encoding='utf-8') as file:
+    data = json.load(file)
+
+progress_bar = tqdm(total=len(data), desc="Processing")
+for item in data:
+    question = item["question"]
+    item["predicted_llm"] = LLM(question)
+    item["predicted_rag"] = rag_chain.invoke(question)
+    progress_bar.update(1)
+
+progress_bar.close()
+with open(output_path, 'w', encoding='utf-8') as output_file:
+    json.dump(data, output_file, indent=2, ensure_ascii=False)
+
+print(f"File has been successfully processed and written to: {output_path}")
+# print("==================chatglm3 only===================")
+# print(LLM(query))
+# print("==================retrieval + chatglm3===================")
+# print(rag_chain.invoke(query))
 
 
 
