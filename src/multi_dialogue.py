@@ -50,3 +50,5 @@ qa = ConversationalRetrievalChain(combine_docs_chain=combine_docs_chain,
                                   return_generated_question=True,
                                   retriever=retriever)
 print(qa({'question': "藜麦怎么防治虫害？", "chat_history": []}))
+# Todo:
+# 变成多轮对话，并存入对话历史

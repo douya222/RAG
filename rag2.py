@@ -26,13 +26,13 @@ from langchain import PromptTemplate
 from langchain.prompts import ChatPromptTemplate
 from langchain.chains import SequentialChain
 import torch
-loader = TextLoader("./data/藜.txt")
+loader = TextLoader("./data/市场监督实务培训-test.txt")
 documents = loader.load()
 
 # 文档分割
 from langchain.text_splitter import CharacterTextSplitter
 # 创建拆分器
-text_splitter = CharacterTextSplitter(separator='。', chunk_size=128, chunk_overlap=0)
+text_splitter = CharacterTextSplitter(separator='。', chunk_size=512, chunk_overlap=0)
 # 拆分文档
 documents = text_splitter.split_documents(documents)
 
@@ -53,7 +53,7 @@ embedding = HuggingFaceBgeEmbeddings(
 # load data to Chroma db
 db = Chroma.from_documents(documents, embedding)
 # similarity search
-db.similarity_search("藜一般在几月播种？")
+# db.similarity_search("藜一般在几月播种？")
 
 template = '''
         【任务描述】
@@ -123,7 +123,7 @@ rag_chain = (
     | llm 
     | StrOutputParser()
 )
-query = '藜怎么防治虫害？'
+query = '地方性法规可以设定哪些行政处罚？'
 rag_chain.invoke(query)
 print(llm(query))
 print(rag_chain.invoke(query))
