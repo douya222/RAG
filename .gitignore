@@ -1,4 +1,6 @@
+__pycache__
 data
 database
 split_data
 src/dataroot/
+src/qa_data/
