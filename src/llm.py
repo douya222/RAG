@@ -34,6 +34,7 @@ class GLM(LLM):
 model_path = "/data/datasets/user1801004151/model_weights/chatglm3-6b/"
 
 # load LLM
+# todo more llm types
 def model_loader(model_path):
     llm = GLM()
     llm.load_model(model_name_or_path = model_path)

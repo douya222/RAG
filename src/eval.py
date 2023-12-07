@@ -1,42 +1,90 @@
-from bert_score import score
 import jieba
-from nltk.translate.bleu_score import corpus_bleu
-from nltk.translate.bleu_score import SmoothingFunction
+import json
+import torch
+from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
 from rouge_chinese import Rouge
+from bert_score import score
 
-reference = ['藜麦常见虫害有象甲虫、金针虫、蝼蛄、黄条跳甲、横纹菜蝽、萹蓄齿胫叶甲、潜叶蝇、蚜虫、夜蛾等。防治方法：可每亩用3%的辛硫磷颗粒剂2-2.5千克于耕地前均匀撒施，随耕地翻入土中，也可以每亩用40%的辛硫磷乳油250毫升，加水1-2千克，拌细土20-25千克配成毒土，撒施地面翻入土中，防治地下害虫']
-llms = ['黎虫害的防治方法如下 :1。选择抗虫品种 :选择抗虫性能较好的品种,能够有效降低虫害的发生率。合理种植密度:合理密植可以减少叶片接触，降低虫害的发生率3。定期检查:定期检查作物生长情况，及时发现虫害，采取措施防治。生物防治:利用天敌、病原菌、昆虫生态调控剂等生物防治措施，降低虫害的发生率。5，化学防治:合理使用农药,控制农药使用量,防止农药过量使用导致虫害抗药性增强。物理防治:利用遮阳网、防虫网等物理措施，减少虫害的发生综上所述，黎虫害的防治需要采取多种措施，根据具体情况选择合适的防治方法。']
-rags = ['针对黎怎么防治虫害的问题，根据提供的背景知识，可以采取以下措施:1.叶斑病: 使用12.5%的烯哗醇可湿性粉剂3000-4000倍液喷雾防治，一般防治1-2次即可收到效果。2.金针虫、蛟站、黄条跳甲、横纹菜蜻、篇蓄齿胫叶甲、潜叶蝇、蚜虫、夜蛾等:可每亩用3%的辛硫磷颗粒剂2-2.5千克于耕地前均匀撒施，随耕地翻入土中，或者每亩用49%的辛硫磷乳油250毫升，加水1-2千克，拌细土20-25千克配成毒土，撒施地面翻入土中，以防治地下害虫。综上，可以通过喷洒叶斑病药剂和使用辛硫磷颗粒剂或乳油进行综合防治虫害']
+def bertscore(ground_truth, predicted):
+    P, R, F1 = score(ground_truth, predicted, model_type="bert-base-chinese", lang="zh", verbose=True)
+    print("Precision: {:.4f}".format(torch.mean(P).item()))
+    print("Recall: {:.4f}".format(torch.mean(R).item()))
+    print("F1 Score: {:.4f}".format(torch.mean(F1).item()))
+    return {"precision": torch.mean(P).item(), "recall": torch.mean(R).item(), "f1_score": torch.mean(F1).item()}
 
+def calculate_bleu_scores(ground_truth_list, predicted_list):
+    bleu_scores = []
+    smooth = SmoothingFunction()
 
-def bertscore(answer, predicted):
-    # 需要和本地bert-chinese model在同一目录
-    P, R, F1 = score(answer, predicted, model_type="bert-base-chinese", lang="zh", verbose=True)
-    print(f"precision score: {P.mean():.3f}")
-    print(f"recall score: {R.mean():.3f}")
-    print(f"F1 score: {F1.mean():.3f}")
-    res = {
-        "P:": P,
-        "R:": R,
-        "F1:": F1
+    for ground_truth, predicted in zip(ground_truth_list, predicted_list):
+        reference_tokenized = [list(jieba.cut(ground_truth))]
+        generated_tokenized = [list(jieba.cut(predicted))]
+        bleu_score = corpus_bleu(reference_tokenized, generated_tokenized, smoothing_function=smooth.method1)
+        bleu_scores.append(bleu_score)
+
+    average_bleu_score = sum(bleu_scores) / len(bleu_scores)
+    return average_bleu_score
+
+def calculate_rouge_scores(ground_truth_list, predicted_list):
+    rouge_scores = []
+
+    for ground_truth, predicted in zip(ground_truth_list, predicted_list):
+        hypothesis = ' '.join(jieba.cut(predicted)) 
+        reference = ' '.join(jieba.cut(ground_truth))
+        rouge = Rouge()
+        scores = rouge.get_scores(hypothesis, reference)
+        rouge_scores.append(scores)  # Appending the first score in case there are multiple references
+
+    return rouge_scores
+
+def calculate_average_rouge_scores(rouge_scores):
+    rouge_1_scores = []
+    rouge_2_scores = []
+    rouge_l_scores = []
+
+    for scores in rouge_scores:
+        rouge_1_scores.append(scores[0]['rouge-1']['f'])
+        rouge_2_scores.append(scores[0]['rouge-2']['f'])
+        rouge_l_scores.append(scores[0]['rouge-l']['f'])
+
+    # Calculate the average scores for each metric
+    avg_rouge_1 = sum(rouge_1_scores) / len(rouge_1_scores)
+    avg_rouge_2 = sum(rouge_2_scores) / len(rouge_2_scores)
+    avg_rouge_l = sum(rouge_l_scores) / len(rouge_l_scores)
+
+    return {"rouge_1": avg_rouge_1, "rouge_2": avg_rouge_2, "rouge_l": avg_rouge_l}
+
+def main():
+    data_path = '/data/user1801004151/research/RAG/src/qa_data/qa_p.json'
+    output_path = '/data/user1801004151/research/RAG/src/qa_data/result.json'
+
+    with open(data_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    ground_truth_list = [item["ground_truth"] for item in data]
+    predicted_llm_list = [item["predicted_llm"] for item in data]
+    predicted_rag_list = [item["predicted_rag"] for item in data]
+
+    results = {}
+
+    print("==================chatglm3 only===================")
+    rouge_scores = calculate_rouge_scores(ground_truth_list, predicted_llm_list)
+    results["chatglm3"] = {
+        "bert_scores": bertscore(ground_truth_list, predicted_llm_list),
+        "bleu_score": calculate_bleu_scores(ground_truth_list, predicted_llm_list),
+        "rouge_scores": calculate_average_rouge_scores(rouge_scores)
     }
 
-def bleu(answer, predicted):
+    print("==================retrieval + chatglm3===================")
+    rouge_scores = calculate_rouge_scores(ground_truth_list, predicted_rag_list)
+    results["retrieval + chatglm3"] = {
+        "bert_scores": bertscore(ground_truth_list, predicted_rag_list),
+        "bleu_score": calculate_bleu_scores(ground_truth_list, predicted_rag_list),
+        "rouge_scores": calculate_average_rouge_scores(rouge_scores)
+    }
 
-    smooth = SmoothingFunction()
-    # Tokenize using Jieba
-    reference_tokenized = [[list(jieba.cut(sentence)) for sentence in answer]]
-    generated_tokenized = [list(jieba.cut(predicted[0]))]
-    print("Reference Tokenized:", reference_tokenized)
-    print("Generated Tokenized:", generated_tokenized)
-    # Calculate BLEU score with a list of references
-    bleu_score = corpus_bleu(reference_tokenized, generated_tokenized, smoothing_function=smooth.method1)
-    print("BLEU-4 Score:", bleu_score)
+    # Write results to a JSON file
+    with open(output_path, 'w', encoding='utf-8') as output_file:
+        json.dump(results, output_file, ensure_ascii=False, indent=2)
 
-def rouge(answer, predicted):
-    
-    hypothesis = ' '.join(jieba.cut(predicted)) 
-    reference = ' '.join(jieba.cut(answer))
-    rouge = Rouge()
-    scores = rouge.get_scores(hypothesis, reference)
-    print("BLEU-4 Score:",scores)
+main()
