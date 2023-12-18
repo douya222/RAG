@@ -2,7 +2,10 @@
 from langchain.llms.base import LLM
 from transformers import AutoTokenizer, AutoModel, AutoConfig
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+
+
 class GLM(LLM):
+    # chatglm2/3 model init
     max_token: int = 2048
     temperature: float = 0.001
     top_p = 0.9
@@ -31,7 +34,8 @@ class GLM(LLM):
                     top_p=self.top_p)
         return response
 
-model_path = "/data/datasets/user1801004151/model_weights/chatglm3-6b/"
+# chatglm3-6b/chatglm2-6b/Baichuan2-7B-Chat/Llama-2-7b-chat-hf
+model_path = "/data/datasets/user1801004151/model_weights/chatglm2-6b/"
 
 # load LLM
 # todo more llm types
@@ -39,3 +43,6 @@ def model_loader(model_path):
     llm = GLM()
     llm.load_model(model_name_or_path = model_path)
     return llm
+
+# model_loader(model_path)
+# print("success!")

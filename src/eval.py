@@ -1,11 +1,12 @@
 import jieba
 import json
 import torch
-from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
+from nltk.translate.bleu_score import corpus_bleu, sentence_bleu,SmoothingFunction
 from rouge_chinese import Rouge
 from bert_score import score
 
 def bertscore(ground_truth, predicted):
+    # bert-base-chinese need to be the same dir
     P, R, F1 = score(ground_truth, predicted, model_type="bert-base-chinese", lang="zh", verbose=True)
     print("Precision: {:.4f}".format(torch.mean(P).item()))
     print("Recall: {:.4f}".format(torch.mean(R).item()))
@@ -13,17 +14,22 @@ def bertscore(ground_truth, predicted):
     return {"precision": torch.mean(P).item(), "recall": torch.mean(R).item(), "f1_score": torch.mean(F1).item()}
 
 def calculate_bleu_scores(ground_truth_list, predicted_list):
-    bleu_scores = []
+    bleu_scores_1 = []
+    bleu_scores_2 = []
     smooth = SmoothingFunction()
 
     for ground_truth, predicted in zip(ground_truth_list, predicted_list):
-        reference_tokenized = [list(jieba.cut(ground_truth))]
-        generated_tokenized = [list(jieba.cut(predicted))]
-        bleu_score = corpus_bleu(reference_tokenized, generated_tokenized, smoothing_function=smooth.method1)
-        bleu_scores.append(bleu_score)
+        reference_tokenized = list(jieba.cut(ground_truth))
+        generated_tokenized = list(jieba.cut(predicted))
+        bleu_score1 = sentence_bleu([reference_tokenized], generated_tokenized, smoothing_function=smooth.method1)
+        # bleu_score2 = corpus_bleu([[reference_tokenized]], [generated_tokenized], smoothing_function=smooth.method1)
+        bleu_scores_1.append(bleu_score1)
+        # bleu_scores_2.append(bleu_score2)
 
-    average_bleu_score = sum(bleu_scores) / len(bleu_scores)
-    return average_bleu_score
+    # print(sum(bleu_scores_1) / len(bleu_scores_1) * 100)
+    # print(sum(bleu_scores_2) / len(bleu_scores_2) * 100)
+    average_bleu_score = sum(bleu_scores_1) / len(bleu_scores_1)
+    return average_bleu_score * 100
 
 def calculate_rouge_scores(ground_truth_list, predicted_list):
     rouge_scores = []
@@ -52,11 +58,11 @@ def calculate_average_rouge_scores(rouge_scores):
     avg_rouge_2 = sum(rouge_2_scores) / len(rouge_2_scores)
     avg_rouge_l = sum(rouge_l_scores) / len(rouge_l_scores)
 
-    return {"rouge_1": avg_rouge_1, "rouge_2": avg_rouge_2, "rouge_l": avg_rouge_l}
+    return {"rouge_1": avg_rouge_1*100, "rouge_2": avg_rouge_2*100, "rouge_l": avg_rouge_l*100}
 
 def main():
     data_path = '/data/user1801004151/research/RAG/src/qa_data/qa_p.json'
-    output_path = '/data/user1801004151/research/RAG/src/qa_data/result.json'
+    output_path = '/data/user1801004151/research/RAG/src/qa_data/result_glm3.json'
 
     with open(data_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -67,17 +73,17 @@ def main():
 
     results = {}
 
-    print("==================chatglm3 only===================")
+    print("==================LLM only===================")
     rouge_scores = calculate_rouge_scores(ground_truth_list, predicted_llm_list)
-    results["chatglm3"] = {
+    results["LLM"] = {
         "bert_scores": bertscore(ground_truth_list, predicted_llm_list),
         "bleu_score": calculate_bleu_scores(ground_truth_list, predicted_llm_list),
         "rouge_scores": calculate_average_rouge_scores(rouge_scores)
     }
 
-    print("==================retrieval + chatglm3===================")
+    print("==================retrieval + LLM===================")
     rouge_scores = calculate_rouge_scores(ground_truth_list, predicted_rag_list)
-    results["retrieval + chatglm3"] = {
+    results["retrieval + LLM"] = {
         "bert_scores": bertscore(ground_truth_list, predicted_rag_list),
         "bleu_score": calculate_bleu_scores(ground_truth_list, predicted_rag_list),
         "rouge_scores": calculate_average_rouge_scores(rouge_scores)

@@ -6,6 +6,8 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 import json
 from tqdm import tqdm
+from baichuan2 import Baichuan
+from llama2 import Llama2
 
 # load db
 db_path = "../database" # 数据库保存路径
@@ -19,9 +21,13 @@ db = vectorize_documents(embedding_model, documents, db_path)
 retriever = db.as_retriever()
 
 # load llm
-llm_model = "/data/datasets/user1801004151/model_weights/chatglm3-6b/" # llm model
-LLM = model_loader(model_path=llm_model)
-
+# chatglm3-6b/chatglm2-6b/Baichuan2-7B-Chat/Llama-2-7b-chat-hf
+# llm_model = "/data/datasets/user1801004151/model_weights/chatglm3-6b/" # llm model
+# LLM = model_loader(model_path=llm_model)
+model_path = "/data/datasets/user1801004151/model_weights/Baichuan2-7B-Chat/"
+LLM = Baichuan()
+LLM.load_model(model_name_or_path = model_path)
+# LLM = Llama2(model_name_or_path='/data/datasets/user1801004151/model_weights/Llama-2-7b-chat-hf', bit4=False)
 # construct prompt
 template = '''
         【任务描述】
@@ -50,13 +56,15 @@ rag_chain = (
 
 # Q&A
 qa_path = './qa_data/qa.json'
-output_path = './qa_data/qa_p.json'
+output_path = './qa_data/qa_bc.json'
 
 with open(qa_path, 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 progress_bar = tqdm(total=len(data), desc="Processing")
+
 for item in data:
+    
     question = item["question"]
     item["predicted_llm"] = LLM(question)
     item["predicted_rag"] = rag_chain.invoke(question)
