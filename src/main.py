@@ -22,11 +22,11 @@ retriever = db.as_retriever()
 
 # load llm
 # chatglm3-6b/chatglm2-6b/Baichuan2-7B-Chat/Llama-2-7b-chat-hf
-# llm_model = "/data/datasets/user1801004151/model_weights/chatglm3-6b/" # llm model
-# LLM = model_loader(model_path=llm_model)
-model_path = "/data/datasets/user1801004151/model_weights/Baichuan2-7B-Chat/"
-LLM = Baichuan()
-LLM.load_model(model_name_or_path = model_path)
+llm_model = "/data/datasets/user1801004151/model_weights/chatglm2-6b/" # llm model
+LLM = model_loader(model_path=llm_model)
+# model_path = "/data/datasets/user1801004151/model_weights/Baichuan2-7B-Chat/"
+# LLM = Baichuan()
+# LLM.load_model(model_name_or_path = model_path)
 # LLM = Llama2(model_name_or_path='/data/datasets/user1801004151/model_weights/Llama-2-7b-chat-hf', bit4=False)
 # construct prompt
 template = '''
@@ -39,11 +39,13 @@ template = '''
         【回答要求】
         - 你需要严格根据背景知识的内容回答，禁止根据常识和已知信息回答问题。
         - 对于不知道的信息，直接回答“未找到相关答案”
-        - 可以根据背景知识进行总结
         -----------
         {question}
         '''
-
+messages = [
+  SystemMessagePromptTemplate.from_template(template),
+  HumanMessagePromptTemplate.from_template('{question}')
+]
 prompt = ChatPromptTemplate.from_template(template)
 
 # llm chain
@@ -53,7 +55,7 @@ rag_chain = (
     | LLM 
     | StrOutputParser()
 )
-
+# print(rag_chain.invoke("藜麦怎么防治虫害？"))
 # Q&A
 qa_path = './qa_data/qa.json'
 output_path = './qa_data/qa_bc.json'
@@ -74,7 +76,7 @@ progress_bar.close()
 with open(output_path, 'w', encoding='utf-8') as output_file:
     json.dump(data, output_file, indent=2, ensure_ascii=False)
 
-print(f"File has been successfully processed and written to: {output_path}")
+# print(f"File has been successfully processed and written to: {output_path}")
 # print("==================chatglm3 only===================")
 # print(LLM(query))
 # print("==================retrieval + chatglm3===================")
